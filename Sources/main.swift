@@ -98,6 +98,15 @@ if let i = args.firstIndex(of: "--snapshot"), i + 1 < args.count {
     app.setActivationPolicy(.accessory)
     app.run()
 }
+// `MultiClaude --demo-gif out.gif` renders the README demo animation and exits.
+if let i = args.firstIndex(of: "--demo-gif"), i + 1 < args.count {
+    let out = URL(fileURLWithPath: args[i + 1])
+    MainActor.assumeIsolated {
+        _ = Task { @MainActor in await makeDemoGIF(to: out); exit(0) }
+    }
+    app.setActivationPolicy(.accessory)
+    app.run()
+}
 // `MultiClaude --register-login` adds the app to Login Items and exits (used by `build.sh install`).
 if args.contains("--register-login") {
     do { try SMAppService.mainApp.register(); exit(0) } catch { print("register failed: \(error)"); exit(1) }

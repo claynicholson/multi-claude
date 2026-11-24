@@ -30,10 +30,12 @@ func initials(_ name: String) -> String {
 
 /// A full-width row that highlights on hover, like a menu item.
 struct MenuRowStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { Row(configuration: configuration) }
+    var forceHover = false   // used by the demo GIF renderer, which has no real mouse
+    func makeBody(configuration: Configuration) -> some View { Row(configuration: configuration, forceHover: forceHover) }
 
     private struct Row: View {
         let configuration: Configuration
+        let forceHover: Bool
         @Environment(\.isEnabled) private var enabled
         @State private var hover = false
         var body: some View {
@@ -44,7 +46,7 @@ struct MenuRowStyle: ButtonStyle {
                 .contentShape(Rectangle())
                 .background(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.primary.opacity(configuration.isPressed ? 0.15 : hover && enabled ? 0.09 : 0))
+                        .fill(Color.primary.opacity(configuration.isPressed ? 0.15 : (hover || forceHover) && enabled ? 0.09 : 0))
                 )
                 .foregroundStyle(enabled ? .primary : .tertiary)
                 .onHover { hover = $0 }
@@ -149,6 +151,7 @@ struct AccountRow: View {
     let active: Bool
     let switching: Bool
     let onSwitch: () -> Void
+    @Environment(\.demoHover) private var demoHover
 
     var body: some View {
         Button(action: { if !active { onSwitch() } }) {
@@ -169,7 +172,10 @@ struct AccountRow: View {
                 }
             }
         }
-        .buttonStyle(MenuRowStyle())
+        .buttonStyle(MenuRowStyle(forceHover: demoHover == p.name))
+        .background(GeometryReader { g in
+            Color.clear.preference(key: RowFramesKey.self, value: [p.name: g.frame(in: .named("panel"))])
+        })
         .help(active ? "\(p.name) is in use" : "Switch Claude to \(p.name)")
         .contextMenu {
             Button("Switch to \(p.name)", action: onSwitch).disabled(active)
@@ -304,6 +310,7 @@ struct Panel: View {
         }
         .padding(6)
         .frame(width: 300)
+        .coordinateSpace(name: "panel")
     }
 
     var separator: some View { Divider().padding(.horizontal, 8).padding(.vertical, 6) }
